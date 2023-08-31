@@ -1,0 +1,88 @@
+.Landing {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100vw;
+  height: 100vh; 
+  overflow: hidden;
+ }
+ .Contenedor {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  position: absolute;
+  z-index: 2;
+  width: 100%;
+  height: 100%;
+}
+.Menu{
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  width: 50%;
+  height: 70%;
+  
+}
+.Title{
+  max-width: 30em;
+  min-width: 25em;
+  height: 25em;
+  object-fit: contain;
+}
+
+.Input{
+  position: relative;
+  top: -80px;
+  width: 25em;
+  height: 4em;
+  border-radius: 60px;
+  text-align: center;
+  border-color: white;
+  color: #343434;
+  font-size: 15px;
+  font-weight: 600;
+}
+.Enlace{
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  position: relative;
+  top: -80px;
+  margin-top: 10px;
+  background-color: #11befc;
+  color: white;
+  text-decoration: none;
+  width: 9em;
+  height: 2.5em;
+  border-radius: 60px;
+  font-size: 20px;
+  font-weight: 600;
+  box-shadow: 0px 5px black;
+}
+.Enlace:hover{
+  background-color: #4dcfff;
+}
+
+.Capa{
+  position: absolute;
+  width: 100%;
+  height:  100vh;
+  background-color: #20201f;
+  opacity: 0.7;
+  object-fit: cover;
+}
+.BackgroundVideo{
+  position: absolute;
+  width: 100%;
+  height:  100vh;
+  z-index: -1;
+  object-fit: cover;
+}
+
+
+ 
+ 
+
+ 
