@@ -13,6 +13,7 @@ ReactDOM.createRoot(document.getElementById('root')).render(
         <Routes>
               <Route path='/' element={<Landing />}/>
               <Route path='/game' element={<Game/>}/>
+              
         </Routes>
     </BrowserRouter>
   </React.StrictMode>,

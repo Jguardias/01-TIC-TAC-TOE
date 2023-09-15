@@ -5,6 +5,9 @@ import http from 'http';
 import cors from 'cors';
 import {PORT} from './config.js'
 
+import { getRandomRoom } from './utils/roomRandom.js';
+
+
 const app = express();
 const server =  http.createServer(app);
 const io = new SocketServer(server, {
@@ -16,8 +19,10 @@ const io = new SocketServer(server, {
 app.use(cors());
 app.use(morgan('dev'));
 
-//almacenar rooms
-const rooms = {};
+
+
+const rooms = []
+const waintingPlayers = []
 
 app.get('/', (req, res) => {
   res.send('¡Hola, mundo desde Express!');
@@ -25,41 +30,52 @@ app.get('/', (req, res) => {
 
 
 
-
 io.on('connection', (socket) => {
   
   console.log('Un usuario se ha conectado', socket.id);
   
-  socket.on('joinWaitingRoom', () => {
-    const playerId = socket.id;
-    let roomToJoin = null;
+  socket.on('searchForMatch', (nickname) => {
+    
 
-    // Buscar una sala existente en espera
-    for (const roomName in rooms) {
-      if (rooms[roomName].length === 1) {
-        roomToJoin = roomName;
-        break;
+      waintingPlayers.push({socket,nickname});
+
+    if (waintingPlayers.length == 2) {
+       const room = {
+        nameRoom: getRandomRoom(8),
+        player1: waintingPlayers.shift(),
+        player2: waintingPlayers.shift()
       }
-    }
+        room.player1.socket.join(room.nameRoom);
+        room.player2.socket.join(room.nameRoom);
 
-    if (roomToJoin) {
-      // Unirse a una sala existente
-      rooms[roomToJoin].push(playerId);
-    } else {
-      // Crear una nueva sala
-      const newRoomName = `room_${Date.now()}`;
-      rooms[newRoomName] = [playerId];
-      roomToJoin = newRoomName;
-    }
-
-    // Unir al jugador a la sala
-    socket.join(roomToJoin);
-    io.to(roomToJoin).emit('gameStart');
+        io.to(room.nameRoom).emit("redirectToMach");
+        rooms.push(room);
+        console.log('Sala creada:', room.nameRoom);
+      } else {
+        console.log('Esperando a más jugadores...');
+      } 
   });
 
 
-  socket.on('mensaje', (data)=>{
-    socket.broadcast.emit('mensaje', data)
+
+  
+  socket.on('event', (data) => {
+ 
+
+    const playerRoom = rooms.find(room => room.player1.socket === socket || room.player2.socket === socket);
+    console.log("Quien envio el cliente es ",  socket.id)
+    if (playerRoom) {
+      if(socket.id === playerRoom.player1.socket.id){
+        io.to(playerRoom.player2.socket.id).emit('event', data);
+      }else{
+        io.to(playerRoom.player1.socket.id).emit('event', data);
+      }
+      // const roomName = playerRoom.nameRoom;
+      // io.to(roomName).emit('event', data);
+      console.log(`Evento enviado a la sala ${playerRoom.roomName}`);
+    } else {
+      console.log("El socket no está en una sala.");
+    }
   });
 
 });
