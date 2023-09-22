@@ -5,7 +5,7 @@ import { ModalOptionsGame } from './components/Modal';
 import { calculateWinner } from './logic/constants';
 import style from './styles/Game.module.css'
 import ReactAudioPlayer from 'react-audio-player';
-import wonderlandAudio from './assets/Wonderland.ogg';
+import musicLoop from './assets/gameMusicLoop.ogg';
 import clickSound from  './assets/sound.mp3';
 import winnerSound from  './assets/SondWinner.mp3';
 import confetti from 'canvas-confetti';
@@ -19,13 +19,15 @@ import socket from './logic/socket';
 const PLAYERS ={
   X: <img src="../src/assets/x.png" alt="Player X" className={style.game__container__body__board__square__playerIcon} />,
   O: <img src="../src/assets/o.png" alt="Player O" className={style.game__container__body__board__square__playerIcon}/>
-}
+};
 
 const  STATUS = {
   WIN: "Winner",
-  LOSE: "losser",
+  LOSE: "Losser",
   DRAW: "It's a Draw",
-}
+};
+
+const playerIDs = [];
 
 function Board(){
 
@@ -35,50 +37,64 @@ function Board(){
   const [isMuted, setIsMuted] = useState(false);
   const [showModal, setShowModal]= useState(false);
   const [winnerSoundPlayed, setWinnerSoundPlayed] = useState(false); 
-
   const [filledBarrTime,setFilledBarrTime] = useState(100)
   const [colorBarrTime, setColorBarrTime] = useState('green')
   const [hasExecutedIsUpTime, setHasExecutedIsUpTime] = useState(false)
   const [thereAreWinner,setThereAreWinner] = useState(true)
 
-  const STYLESTIMEBARCHILD = {
+  const [infoRoom, setInfoRoom] = useState({
+    nameRoom: "",
+    nickPlayer1: "",
+    nickPlayer2: ""
+  });
+
+  const stylesTimeBarChild = {
     height: '100%',
     width: `${filledBarrTime}%`,
     backgroundColor:colorBarrTime,
     borderRadius:40,
     textAlign: 'right'
   }
+
   useEffect(() => {
-    socket.on('gameStart', () => {
-      console.log('El juego ha comenzado. Tu oponente es:');
+    socket.on('sendInfoRoom', ({room,player1,player2}) => {
+      setInfoRoom(prevInfoRoom => ({
+        ...prevInfoRoom,
+        nameRoom: room,
+        nickPlayer1: player1,
+        nickPlayer2: player2
+      }));
+      return; 
     });
-
     return () => {
-      socket.off('gameStart');
+      socket.off('sendInfoRoom');
     };
-  }, []);
+  }, [infoRoom]);  
+  
+  useEffect(() => {
+    socket.on('sendPlayerIDs', ({idPlayer1,idPlayer2}) => {
+      playerIDs.push(idPlayer1,idPlayer2)
+    });
+    return () => {
+      socket.off('sendPlayerIDs');
+    };
+  }, [playerIDs]);
 
   useEffect(() => {
-    socket.on('event', (data) => {
-      console.log(`Movimiento del oponente: Casilla ${data.position} - Jugador ${data.player}`);
+    socket.on('gameMove', (data) => {
       const nextSquares = squares.slice();
       nextSquares[data.position] = data.player ?  PLAYERS.X : PLAYERS.O;
       setSquares(nextSquares);
       setXIsNext(!xIsNext);
       setFilledBarrTime(data.barra)
-      console.log(data);
-      console.log("LEEEEE")
     });
-
     return () => {
-      socket.off('event');
+      socket.off('gameMove');
     };
-
   }, [squares, xIsNext]);
 
-
   useEffect(() => {
-    const interval = setInterval(() => {
+    const timeBarUpdateInterval = setInterval(() => {
       setFilledBarrTime(prevProgress => {
         const newProgress = Math.max(prevProgress - 10, 0);
         if (thereAreWinner && newProgress > 70) {
@@ -92,14 +108,11 @@ function Board(){
           setColorBarrTime('green');
           setHasExecutedIsUpTime(true)
         }
-  
         return newProgress; 
       });
     }, 1000);
-
-    return () => clearInterval(interval);
+    return () => clearInterval(timeBarUpdateInterval);
   }, [thereAreWinner]);
-
 
   useEffect(() => {
     if (hasExecutedIsUpTime) {
@@ -110,6 +123,39 @@ function Board(){
     }
   },[hasExecutedIsUpTime,xIsNext,thereAreWinner]);
 
+  useEffect(() => {
+    if(calculateWinner(squares) === STATUS.WIN){
+       socket.emit("playerWin", xIsNext)
+    }else if (calculateWinner(squares) === STATUS.LOSE){
+      callModal("lOSE", STATUS.LOSE)
+    }else if (checkForDraw()){
+      callModal("",STATUS.DRAW)
+    }else{
+      return;
+    }
+  }, [xIsNext]);
+  
+  useEffect(()=>{
+    socket.on('gameResult', (data)=>{
+      if(data === "Winner"){
+        callModal(data, STATUS.WIN)
+      } else{
+        callModal(data, STATUS.LOSE)
+      }
+    });
+    return () => {
+      socket.off('gameResult');
+    };
+  },[xIsNext]);
+
+  useEffect(() => {
+    socket.on('resetGame', () => {
+      hardleReset()
+    });
+    return () => {
+      socket.off('resetGame');
+    };
+  }, [hardleReset]);
 
   function hardleReset(){
     setSquares(Array(9).fill(null));
@@ -127,6 +173,9 @@ function Board(){
     setHasExecutedIsUpTime(false);
   }
 
+  function hardleResetMatch(){
+    socket.emit("resetGame")
+  }
 
   function playSound  (link){
     if (!isMuted) {
@@ -139,72 +188,58 @@ function Board(){
     setIsMuted(!isMuted);
   }
 
-  const GETVALUEWINNER = calculateWinner(squares);
-  
-  function checkForDraw() {
-    return GETVALUEWINNER === null && !squares.includes(null);
-  }
-
-
   function hardleClick(i){
-
-    if(squares[i] || GETVALUEWINNER === "Winner"){  
-      return; 
+    if(xIsNext === true && socket.id === playerIDs[0] || xIsNext === false && socket.id === playerIDs[1]){
+      if(squares[i] || calculateWinner(squares) === "Winner"){  
+        return; 
+      }
+      const nextSquares = squares.slice();
+      xIsNext ? nextSquares[i] = PLAYERS.X : nextSquares[i] = PLAYERS.O;
+      setSquares(nextSquares);
+      setXIsNext(!xIsNext);
+      playSound(clickSound);
+      socket.emit('gameMove',  { position: i, player: xIsNext, barra: 100 });
+      timeBarrReset();
+    }else{
+      return;
     }
-
-    const nextSquares = squares.slice();
-    xIsNext ? nextSquares[i] = PLAYERS.X : nextSquares[i] = PLAYERS.O;
-
-    setSquares(nextSquares);
-    setXIsNext(!xIsNext);
-    playSound(clickSound);
-    socket.emit('event',  { position: i, player: xIsNext, barra: 100 });
-    timeBarrReset();
-   
   }
 
-  useEffect(() => {
-    if (GETVALUEWINNER === "Winner") {
-      callModalWinner(GETVALUEWINNER);
-    } else if (checkForDraw()) {
-      callModalWinner(null);
-    }
-  }, [GETVALUEWINNER, checkForDraw()]);
-
-  function callModalWinner(condition){
-   
-    if (condition === "Winner" ) {
+  function checkForDraw() {
+    return calculateWinner(squares) === null && !squares.includes(null);
+  }
+  
+  function callModal(condition, status) {
+    if (condition === "Winner") {
       if (!winnerSoundPlayed) {
-        confetti()
+        confetti();
         playSound(winnerSound);
         setWinnerSoundPlayed(true);
         setShowModal(true);
         setThereAreWinner(false);
-        setStatusModal(STATUS.WIN);
+        setStatusModal(status);
       }
     } else {
       setShowModal(true);
       setThereAreWinner(false);
-      setStatusModal(STATUS.DRAW);
+      setStatusModal(status);
     }
-  
   }
-
-
+  
   return (
     <main className={style.game}> 
       <div className={style.game__container}>
 
       <header className={style.game__container__header}>
        <div className={style.game__container__header__timeBar}>
-           <div style={STYLESTIMEBARCHILD}>
+           <div style={stylesTimeBarChild}>
              <span className={style.game__container__header__timeBar__text}>{`time`}</span>
            </div>
         </div>
       </header>
 
         <section className={style.game__container__body}>
-          <SquareTurn  value="×" isSelected = {xIsNext === true} namePlayer="Norbit"/>
+          <SquareTurn  value="×" isSelected = {xIsNext === true} namePlayer={infoRoom.nickPlayer1}/>
       <div className={style.game__container__body__board}>
         <div>
           <Square value={squares[0]} onSquareClick={()=>{hardleClick(0) }} />
@@ -222,15 +257,15 @@ function Board(){
           <Square value={squares[8]} onSquareClick={()=>{hardleClick(8) }}/>
         </div>
       </div>
-          <SquareTurn  value="o" isSelected = {xIsNext === false} namePlayer="Aurora" />
+          <SquareTurn  value="o" isSelected = {xIsNext === false} namePlayer={infoRoom.nickPlayer2} />
         </section>
         
-        <ModalOptionsGame textBody={statusModal} isSelected = {showModal === false} resetFunction={()=>{hardleReset()}}/>
+        <ModalOptionsGame textBody={statusModal} isSelected = {showModal === false} resetFunction={()=>{hardleResetMatch()}}/>
       </div>
 
       <div className={style.game__backgroundLayer}></div>
       <video src={rutaVideo} autoPlay muted loop  type='video/mp4'className={style.game__backgroundVideo}/>
-      <ReactAudioPlayer className={style.game__audio} src={wonderlandAudio} autoPlay controls loop volume={isMuted ? 0 : 0.5}/>
+      <ReactAudioPlayer className={style.game__audio} src={musicLoop} autoPlay controls loop volume={isMuted ? 0 : 0.5}/>
   </main>
   );
 }
