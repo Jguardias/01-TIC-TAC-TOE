@@ -25,9 +25,9 @@ const rooms = []
 const waitingPlayers = []
 const resetWaitigPlayer = []
 
-// app.get('/', (req, res) => {
-//   res.send('¡Hola, mundo desde Express!');
-// });
+app.get('/', (req, res) => {
+  res.send('¡Hola, mundo desde Express!');
+});
 
 
 
