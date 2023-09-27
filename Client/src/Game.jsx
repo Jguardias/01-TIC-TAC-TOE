@@ -20,8 +20,6 @@ import oIcon from '../src/assets/o.png';
 const PLAYERS ={
   X: <img src={xIcon} alt="Player X" className={style.game__container__body__board__square__playerIcon} />,
   O: <img src={oIcon} alt="Player O" className={style.game__container__body__board__square__playerIcon}/>
-  // X: "❌",
-  // O: "⚪",
 };
 
 const  STATUS = {
