@@ -17,8 +17,10 @@ import socket from './logic/socket';
 
 
 const PLAYERS ={
-  X: <img src="./assets/x.png" alt="Player X" className={style.game__container__body__board__square__playerIcon} />,
-  O: <img src="./assets/o.png" alt="Player O" className={style.game__container__body__board__square__playerIcon}/>
+  // X: <img src="./assets/x.png" alt="Player X" className={style.game__container__body__board__square__playerIcon} />,
+  // O: <img src="./assets/o.png" alt="Player O" className={style.game__container__body__board__square__playerIcon}/>
+  X: "❌",
+  O: "⚪",
 };
 
 const  STATUS = {
