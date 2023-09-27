@@ -12,15 +12,16 @@ import confetti from 'canvas-confetti';
 import rutaVideo from '../src/assets/Background.mp4';
 import socket from './logic/socket';
 
-
+import xIcon from '../src/assets/x.png';
+import oIcon from '../src/assets/o.png';
 
 
 
 const PLAYERS ={
-  // X: <img src="./assets/x.png" alt="Player X" className={style.game__container__body__board__square__playerIcon} />,
-  // O: <img src="./assets/o.png" alt="Player O" className={style.game__container__body__board__square__playerIcon}/>
-  X: "❌",
-  O: "⚪",
+  X: <img src={xIcon} alt="Player X" className={style.game__container__body__board__square__playerIcon} />,
+  O: <img src={oIcon} alt="Player O" className={style.game__container__body__board__square__playerIcon}/>
+  // X: "❌",
+  // O: "⚪",
 };
 
 const  STATUS = {
