@@ -7,8 +7,9 @@ export default defineConfig({
   server:{
     proxy:{
       '/socket.io': {
-        target: 'http://localhost:4000', 
+        target: 'https://rendersocketserver.onrender.com/', 
         ws: true,
+        secure: false,
       },
     },
   },
